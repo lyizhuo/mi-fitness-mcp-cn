@@ -75,6 +75,10 @@ const getLimQuery = (id) => {
   return v ? `&limit=${encodeURIComponent(v)}` : '';
 };
 
+// API 统一返回 {status, count, data}；视图层统一解包成数组
+const unwrapData = (resp) =>
+  Array.isArray(resp) ? resp : Array.isArray(resp && resp.data) ? resp.data : [];
+
 // UI Theme Management
 function initTheme() {
   document.documentElement.setAttribute('data-theme', state.theme);
@@ -318,34 +322,42 @@ async function loadOverview() {
   const spo2Promise = api('GET', getRangeQuery('/api/spo2') + '&limit=1');
   const stressPromise = api('GET', getRangeQuery('/api/stress') + '&limit=1');
 
-  const [summary, hr, sleep, spo2, stress] = await Promise.all([
+  const [summaryResp, hrResp, sleepResp, spo2Resp, stressResp] = await Promise.all([
     summaryPromise, hrPromise, sleepPromise, spo2Promise, stressPromise
   ]);
+  const summary = unwrapData(summaryResp);
+  const hr = unwrapData(hrResp);
+  const sleep = unwrapData(sleepResp);
+  const spo2 = unwrapData(spo2Resp);
+  const stress = unwrapData(stressResp);
 
-  if (summary && Array.isArray(summary) && summary.length > 0) {
+  if (summary.length > 0) {
     const latest = summary[summary.length - 1];
     $('statSteps').textContent = latest.steps ? latest.steps.toLocaleString() : '0';
-    $('statCalories').textContent = latest.active_calories ? Math.round(latest.active_calories) : '0';
-    $('statDistance').textContent = latest.distance ? (latest.distance / 1000).toFixed(2) : '0';
+    $('statCalories').textContent = latest.active_kcal ? Math.round(latest.active_kcal) : '0';
+    $('statDistance').textContent = latest.distance_m ? (latest.distance_m / 1000).toFixed(2) : '0';
   }
 
-  if (hr && Array.isArray(hr) && hr.length > 0) {
-    $('statHr').textContent = hr[0].bpm || '--';
+  if (hr.length > 0) {
+    $('statHr').textContent = hr[hr.length - 1].bpm || '--';
   }
 
-  if (sleep && Array.isArray(sleep) && sleep.length > 0) {
+  if (sleep.length > 0) {
     const lastSleep = sleep[sleep.length - 1];
-    const totalMinutes = lastSleep.duration_minutes || (lastSleep.end_time - lastSleep.start_time) / 60;
+    const totalMinutes = lastSleep.duration_minutes
+      || (new Date(lastSleep.end_at) - new Date(lastSleep.start_at)) / 60000;
     const hours = (totalMinutes / 60).toFixed(1);
     $('statSleep').textContent = isNaN(hours) ? '--' : hours;
   }
 
-  if (spo2 && Array.isArray(spo2) && spo2.length > 0) {
-    $('statSpo2').textContent = spo2[0].spo2_value ? `${spo2[0].spo2_value}%` : '--';
+  if (spo2.length > 0) {
+    const value = spo2[spo2.length - 1].spo2_pct;
+    $('statSpo2').textContent = value !== undefined && value !== null ? `${value}%` : '--';
   }
 
-  if (stress && Array.isArray(stress) && stress.length > 0) {
-    $('statStress').textContent = stress[0].stress_value || '--';
+  if (stress.length > 0) {
+    const value = stress[stress.length - 1].stress_score;
+    $('statStress').textContent = value !== undefined && value !== null ? value : '--';
   }
 
   showToast('仪表盘已刷新', '最新数据已加载', 'success');
@@ -360,7 +372,8 @@ async function querySummary() {
 function renderSummaryVisual(data) {
   const container = $('summaryVisualContainer');
   if (!container) return;
-  if (!data || !Array.isArray(data) || data.length === 0) {
+  data = unwrapData(data);
+  if (data.length === 0) {
     container.innerHTML = `<div class="inspector-empty-state"><p>所选时间段内无活动数据</p></div>`;
     return;
   }
@@ -380,12 +393,12 @@ function renderSummaryVisual(data) {
   `;
 
   data.forEach(item => {
-    const distKm = item.distance ? (item.distance / 1000).toFixed(2) : '0.00';
+    const distKm = item.distance_m ? (item.distance_m / 1000).toFixed(2) : '0.00';
     html += `
       <tr>
         <td><strong>${item.date || '--'}</strong></td>
         <td><span class="badge badge-success">👟 ${(item.steps || 0).toLocaleString()} 步</span></td>
-        <td>🔥 ${Math.round(item.active_calories || 0)} kcal</td>
+        <td>🔥 ${Math.round(item.active_kcal || 0)} kcal</td>
         <td>📍 ${distKm} km</td>
       </tr>
     `;
@@ -409,16 +422,24 @@ async function querySleep() {
 function renderSleepTimeline(data) {
   const container = $('sleepTimelineWrapper');
   if (!container) return;
-  if (!data || !Array.isArray(data) || data.length === 0) {
+  data = unwrapData(data);
+  if (data.length === 0) {
     container.innerHTML = '<p class="panel-subtitle">无睡眠分段数据</p>';
     return;
   }
 
   const latest = data[data.length - 1];
-  const deep = latest.deep_sleep_minutes || 0;
-  const light = latest.light_sleep_minutes || 0;
-  const rem = latest.rem_sleep_minutes || 0;
-  const awake = latest.awake_minutes || 0;
+  const stageTotals = { deep: 0, light: 0, rem: 0, awake: 0 };
+  (latest.stages || []).forEach((stage) => {
+    if (stageTotals[stage.stage] !== undefined) {
+      stageTotals[stage.stage] += Number(stage.minutes) || 0;
+    }
+  });
+  let { deep, light, rem, awake } = stageTotals;
+  if (deep + light + rem + awake === 0) {
+    light = latest.time_asleep_minutes || 0;
+    awake = latest.time_awake_minutes || 0;
+  }
   const total = deep + light + rem + awake || 1;
 
   container.innerHTML = `
@@ -473,7 +494,8 @@ async function queryMetricSeries() {
 function renderMetricChart(data, metricName) {
   const container = $('metricChartContainer');
   if (!container) return;
-  if (!data || !Array.isArray(data) || data.length === 0) {
+  data = unwrapData(data);
+  if (data.length === 0) {
     container.innerHTML = '<div class="inspector-empty-state"><p>所选范围内无序列数据</p></div>';
     return;
   }
@@ -715,7 +737,8 @@ async function listKeys() {
 function renderKeysTable(data) {
   const container = $('keysTableWrapper');
   if (!container) return;
-  if (!data || !Array.isArray(data) || data.length === 0) {
+  data = unwrapData(data);
+  if (data.length === 0) {
     container.innerHTML = '<p class="panel-subtitle">暂无已发放的 API Key 记录</p>';
     return;
   }
@@ -736,14 +759,16 @@ function renderKeysTable(data) {
   `;
 
   data.forEach(k => {
+    const masked = k.key_masked || '';
+    const prefix = masked.split('…')[0];
     html += `
       <tr>
         <td><strong>${k.label || '默认'}</strong></td>
-        <td><code>${k.prefix || k.api_key_prefix || 'mif_sk_...'}</code></td>
+        <td><code>${masked || '--'}</code></td>
         <td>${k.user_id || '--'}</td>
         <td>${k.created_at || '--'}</td>
         <td>
-          <button class="btn btn-danger btn-sm" onclick="revokeKeyByPrefix('${k.prefix || k.api_key_prefix}')">吊销</button>
+          <button class="btn btn-danger btn-sm" onclick="revokeKeyByPrefix('${prefix}')">吊销</button>
         </td>
       </tr>
     `;
