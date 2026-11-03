@@ -82,6 +82,16 @@ class Database:
                     sleep_score INTEGER,
                     is_nap BOOLEAN DEFAULT FALSE,
                     stages TEXT,  -- JSON array of sleep stages
+                    avg_hrv_ms INTEGER,
+                    min_hrv_ms INTEGER,
+                    max_hrv_ms INTEGER,
+                    hrv_median_ms INTEGER,
+                    hrv_std_ms INTEGER,
+                    hrv_lower_quantile_ms INTEGER,
+                    hrv_upper_quantile_ms INTEGER,
+                    hrv_base_min_ms INTEGER,
+                    hrv_base_max_ms INTEGER,
+                    hrv_analysis_at TIMESTAMP,
                     UNIQUE(user_id, sleep_id)
                 )
             """)
@@ -263,7 +273,30 @@ class Database:
                 ON abnormal_heart_beat_events(user_id, start_at)
             """)
 
+            # 旧库迁移：为已有 sleep_sessions 表补充 HRV 列
+            self._migrate_sleep_hrv(conn)
+
             conn.commit()
+
+    @staticmethod
+    def _migrate_sleep_hrv(conn: sqlite3.Connection) -> None:
+        """Add HRV columns to sleep_sessions created by older versions."""
+        columns = {row["name"] for row in conn.execute("PRAGMA table_info(sleep_sessions)")}
+        additions = {
+            "avg_hrv_ms": "INTEGER",
+            "min_hrv_ms": "INTEGER",
+            "max_hrv_ms": "INTEGER",
+            "hrv_median_ms": "INTEGER",
+            "hrv_std_ms": "INTEGER",
+            "hrv_lower_quantile_ms": "INTEGER",
+            "hrv_upper_quantile_ms": "INTEGER",
+            "hrv_base_min_ms": "INTEGER",
+            "hrv_base_max_ms": "INTEGER",
+            "hrv_analysis_at": "TIMESTAMP",
+        }
+        for name, column_type in additions.items():
+            if name not in columns:
+                conn.execute(f"ALTER TABLE sleep_sessions ADD COLUMN {name} {column_type}")
 
     @contextmanager
     def _get_connection(self):
@@ -329,14 +362,28 @@ class Database:
                 INSERT INTO sleep_sessions (
                     id, provider, source_type, source_record_id, user_id, device_id,
                     timezone, collected_at, sleep_id, start_at, end_at, duration_minutes,
-                    time_asleep_minutes, time_awake_minutes, sleep_score, is_nap, stages
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    time_asleep_minutes, time_awake_minutes, sleep_score, is_nap, stages,
+                    avg_hrv_ms, min_hrv_ms, max_hrv_ms, hrv_median_ms, hrv_std_ms,
+                    hrv_lower_quantile_ms, hrv_upper_quantile_ms,
+                    hrv_base_min_ms, hrv_base_max_ms, hrv_analysis_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                          ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(user_id, sleep_id) DO UPDATE SET
                     duration_minutes = excluded.duration_minutes,
                     time_asleep_minutes = excluded.time_asleep_minutes,
                     time_awake_minutes = excluded.time_awake_minutes,
                     sleep_score = excluded.sleep_score,
                     stages = excluded.stages,
+                    avg_hrv_ms = excluded.avg_hrv_ms,
+                    min_hrv_ms = excluded.min_hrv_ms,
+                    max_hrv_ms = excluded.max_hrv_ms,
+                    hrv_median_ms = excluded.hrv_median_ms,
+                    hrv_std_ms = excluded.hrv_std_ms,
+                    hrv_lower_quantile_ms = excluded.hrv_lower_quantile_ms,
+                    hrv_upper_quantile_ms = excluded.hrv_upper_quantile_ms,
+                    hrv_base_min_ms = excluded.hrv_base_min_ms,
+                    hrv_base_max_ms = excluded.hrv_base_max_ms,
+                    hrv_analysis_at = excluded.hrv_analysis_at,
                     updated_at = CURRENT_TIMESTAMP
                 """,
                 (
@@ -357,6 +404,16 @@ class Database:
                     sleep.sleep_score,
                     sleep.is_nap,
                     json.dumps([s.model_dump() for s in sleep.stages]),
+                    sleep.avg_hrv_ms,
+                    sleep.min_hrv_ms,
+                    sleep.max_hrv_ms,
+                    sleep.hrv_median_ms,
+                    sleep.hrv_std_ms,
+                    sleep.hrv_lower_quantile_ms,
+                    sleep.hrv_upper_quantile_ms,
+                    sleep.hrv_base_min_ms,
+                    sleep.hrv_base_max_ms,
+                    sleep.hrv_analysis_at.isoformat() if sleep.hrv_analysis_at else None,
                 ),
             )
             conn.commit()
