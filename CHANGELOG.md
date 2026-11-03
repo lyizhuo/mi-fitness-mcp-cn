@@ -6,6 +6,7 @@
 - CI 新增 `.github/workflows/docker.yml`：QEMU + Buildx 构建 `linux/amd64`/`linux/arm64` 并推送 GHCR，arm64 任务在 QEMU 下冒烟验证架构、CLI、依赖导入与 `all` 模式端到端
 - 镜像内置 `keyrings.alt` 文件后端，容器内无 Secret Service 时 `setup`/`sync` 可用（凭据以明文等同形式存于挂载卷）
 - 修复 Web 仪表盘渲染：API 统一返回 `{status,count,data}`，前端此前按裸数组与旧字段名（`distance`/`active_calories`/`spo2_value`/`stress_value`）渲染，且睡眠未聚合 `stages`，导致有数据仍显示空；现统一解包并按 `distance_m`/`active_kcal`/`spo2_pct`/`stress_score` 展示，Key 表改用 `key_masked`
+- 睡眠同步新增整晚 HRV：`avg_hrv_ms`/`min_hrv_ms`/`max_hrv_ms`/`hrv_median_ms`/`hrv_std_ms`/分位/基线/`hrv_analysis_at`，来自 Xiaomi `sleep` payload（无独立 hrv key）；旧库启动时自动 `ALTER TABLE` 迁移，`/api/sleep`、MCP 查询、导出和睡眠时间线直接返回/展示
 
 ## 0.2.2（零第三方请求）
 

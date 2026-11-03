@@ -15,7 +15,7 @@
 
 - 🇨🇳 **中国区云端适配**（`--region cn`），同时支持 ru/de/sg/us 等国际区!
 - 📦 **三种接入方式**：MCP Server（AI 客户端）、REST API（任意程序）、Web 仪表盘（浏览器）
-- 💤 **全量健康指标**：每日活动、逐分钟心率、睡眠分期（深睡/浅睡/REM/小睡）、运动记录、身体成分、血氧（SpO₂）、压力、异常心跳
+- 💤 **全量健康指标**：每日活动、逐分钟心率、睡眠分期（深睡/浅睡/REM/小睡）、整晚 HRV（平均/最小/最大/中位/分位/基线）、运动记录、身体成分、血氧（SpO₂）、压力、异常心跳
 - 🔄 **增量同步引擎**：7 天分块拉取 + 断点续传游标 + UPSERT 幂等入库，重复同步不产生脏数据
 - 🔑 **API Key 体系**：用小米凭据换取 `mif_sk_*` Key（类大模型平台风格），支持多账号隔离、用量统计、按前缀吊销
 - 📱 **扫码登录**：逆向小米官方扫码流程，手机 App 扫码即可授权，告别浏览器 F12 抓 Cookie
@@ -44,12 +44,14 @@ flowchart LR
 |---|---|---|---|
 | 每日活动 | 步数、距离、活动卡路里 | `daily_activity` | `/api/summary` |
 | 心率 | 逐分钟采样 + 静息心率 | `heart_rate` | `/api/heart-rate` |
-| 睡眠 | 时长、入睡/清醒、分段（深睡/浅睡/REM） | `sleep` | `/api/sleep` |
+| 睡眠 | 时长、入睡/清醒、分段（深睡/浅睡/REM）、整晚 HRV（ms） | `sleep` | `/api/sleep` |
 | 运动 | 类型、时长、距离、卡路里、心率、配速 | `workouts` | `/api/workouts` |
 | 身体成分 | 体重、BMI、体脂、肌肉量等（需体脂秤） | `body_measurements` | `/api/body-measurements` |
 | 血氧 | SpO₂ 采样 | `spo2` | `/api/spo2` |
 | 压力 | 压力分数 + 等级 | `stress` | `/api/stress` |
 | 异常心跳 | 事件起止与时长 | `abnormal_heart_beat` | `/api/abnormal-heart-beat` |
+
+> 睡眠 HRV 来自 Xiaomi `sleep` payload 的整晚聚合字段（`avg_hrv`/`min_hrv`/`max_hrv`/`hrv_median`/`hrv_std`/分位/基线），不是独立 key；仅部分设备（如 Band 10 Pro）提供，缺失时字段为 `null`。
 
 ## 快速开始
 
