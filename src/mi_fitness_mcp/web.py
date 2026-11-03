@@ -69,11 +69,18 @@ def create_app(
         """Render the main dashboard interface."""
         template_file = assets_path / "templates" / "index.html"
         if template_file.exists():
+            static_assets = [
+                assets_path / "static" / "js" / "app.js",
+                assets_path / "static" / "css" / "style.css",
+            ]
+            mtimes = [p.stat().st_mtime for p in static_assets if p.exists()]
+            asset_version = int(max(mtimes)) if mtimes else 0
             return render_template(
                 "index.html",
                 backend_url=app.config["BACKEND_URL"],
                 has_api_key=bool(app.config["API_KEY"]),
                 has_admin_key=bool(app.config["ADMIN_KEY"]),
+                asset_version=asset_version,
             )
         # Fallback to direct static index.html
         direct_index = assets_path / "index.html"
