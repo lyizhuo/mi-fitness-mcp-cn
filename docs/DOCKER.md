@@ -1,7 +1,8 @@
 # Docker 部署（含 ARM64）
 
 镜像在 CI 中通过 QEMU + Buildx 构建，同时产出 `linux/amd64` 与 `linux/arm64` 两种架构，
-默认推送到 GHCR：`ghcr.io/<owner>/mi-fitness-mcp-cn`。树莓派 4/5、ARM 服务器、ARM NAS 直接拉取 AArch64 镜像即可。
+默认推送到 GHCR：`ghcr.io/<owner>/mi-fitness-mcp-cn`。树莓派 4/5、ARM 服务器、ARM NAS 直接拉取 AArch64 镜像即可
+（32 位 ARMv7 不在构建矩阵内）。
 
 ## 快速运行
 
@@ -70,6 +71,8 @@ mkdir -p ./mi-fitness-data && sudo chown -R 10001:10001 ./mi-fitness-data
 | `MI_FITNESS_WEB_PORT` | `8322` | `all` 模式下仪表盘端口（容器内） |
 
 也可以直接给 `api`/`web` 传 `--port`/`--host`/`--backend-url`。
+
+> 镜像内的 Web 仪表盘沿用 CLI 的 Flask 内置服务器，面向本机/局域网自用；需要公网暴露时请在前面加反向代理并强制 HTTPS 与鉴权。
 
 ## 本地构建 ARM64 镜像
 
