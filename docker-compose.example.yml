@@ -1,0 +1,21 @@
+services:
+  mi-fitness:
+    image: ghcr.io/lyizhuo/mi-fitness-mcp-cn:latest
+    # 从源码本地构建时改用： build: .
+    container_name: mi-fitness
+    # 多架构清单会自动匹配宿主架构；强制 ARM64（树莓派/NAS）可取消注释
+    # platform: linux/arm64
+    ports:
+      - "8322:8322"                 # Web 仪表盘
+      - "127.0.0.1:8321:8321"       # REST API 仅本机；需要局域网访问改为 "8321:8321"
+    volumes:
+      - mi-fitness-data:/data
+    environment:
+      # 暴露到局域网时务必设置，否则任何能访问端口的进程都可读写健康数据
+      MI_FITNESS_API_KEY: change-me
+      MI_FITNESS_ADMIN_KEY: change-me
+      # 收窄 Host 头白名单（默认 *）：MI_FITNESS_ALLOWED_HOSTS: "192.168.1.10,localhost"
+    restart: unless-stopped
+
+volumes:
+  mi-fitness-data:

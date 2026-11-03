@@ -1,5 +1,11 @@
 # Changelog
 
+## 未发布
+
+- Docker 镜像：`python:3.12-slim` 基础，默认 `all` 模式在同一容器启动 FastAPI 与 Web 仪表盘；数据、配置、日志与凭据统一落在 `/data` 卷（XDG 目录重定向）
+- CI 新增 `.github/workflows/docker.yml`：QEMU + Buildx 构建 `linux/amd64`/`linux/arm64` 并推送 GHCR，arm64 任务在 QEMU 下冒烟验证架构、CLI、依赖导入与 `all` 模式端到端
+- 镜像内置 `keyrings.alt` 文件后端，容器内无 Secret Service 时 `setup`/`sync` 可用（凭据以明文等同形式存于挂载卷）
+
 ## 0.2.2（零第三方请求）
 
 - 移除 Web 仪表盘与测试页的 Google Fonts 外链：打开页面不再向 Google 发送任何请求（此前浏览器会上传 IP/UA），改用系统字体栈，国内加载也更快、离线可渲染

@@ -135,6 +135,21 @@ curl -X POST http://127.0.0.1:8321/api/sync -H "Content-Type: application/json" 
   -d '{"start_date":"2026-08-30","end_date":"2026-08-31"}'
 ```
 
+## Docker（ARM64 / AMD64）
+
+```bash
+docker run -d --name mi-fitness \
+  -p 8322:8322 -p 8321:8321 \
+  -v mi-fitness-data:/data \
+  -e MI_FITNESS_API_KEY=change-me \
+  -e MI_FITNESS_ADMIN_KEY=change-me \
+  ghcr.io/lyizhuo/mi-fitness-mcp-cn:latest
+```
+
+默认 `all` 模式在同一容器内启动 REST API（8321）与 Web 仪表盘（8322），数据、配置与凭据都保存在 `/data` 卷。
+CI 构建 `linux/amd64` 与 `linux/arm64` 双架构镜像（树莓派 4/5、ARM 服务器/NAS 直接拉取）：
+详见 [Docker 部署文档](docs/DOCKER.md)，编排示例见 [docker-compose.example.yml](docker-compose.example.yml)。
+
 ## 常见问题
 
 <details>
@@ -186,6 +201,7 @@ tests/                    # 单元测试与端到端测试套件
 ## 文档
 
 - [隐私与数据安全审计](docs/PRIVACY.md) —— 数据流向、全部对外请求清单、威胁模型与自验方法
+- [Docker 部署](docs/DOCKER.md) —— 镜像构建、ARM64、数据卷与环境变量
 - [贡献指南](CONTRIBUTING.md) · [安全政策](SECURITY.md) · [更新日志](CHANGELOG.md)
 
 ## 本地开发
