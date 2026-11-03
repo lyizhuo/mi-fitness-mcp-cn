@@ -442,6 +442,19 @@ function renderSleepTimeline(data) {
   }
   const total = deep + light + rem + awake || 1;
 
+  const hrvParts = [];
+  if (latest.avg_hrv_ms != null) hrvParts.push(`平均 ${latest.avg_hrv_ms} ms`);
+  if (latest.hrv_median_ms != null) hrvParts.push(`中位 ${latest.hrv_median_ms} ms`);
+  if (latest.hrv_min_ms != null && latest.hrv_max_ms != null) {
+    hrvParts.push(`区间 ${latest.hrv_min_ms}–${latest.hrv_max_ms} ms`);
+  }
+  if (latest.hrv_lower_quantile_ms != null && latest.hrv_upper_quantile_ms != null) {
+    hrvParts.push(`分位 ${latest.hrv_lower_quantile_ms}–${latest.hrv_upper_quantile_ms} ms`);
+  }
+  const hrvLine = hrvParts.length
+    ? `<div class="panel-subtitle" style="margin-top:8px;">整晚 HRV：${hrvParts.join(' · ')}</div>`
+    : '';
+
   container.innerHTML = `
     <div class="sleep-timeline-container">
       <div class="sleep-timeline-bar">
@@ -456,6 +469,7 @@ function renderSleepTimeline(data) {
         <div class="legend-item"><span class="legend-dot rem"></span>REM ${rem}m (${Math.round((rem/total)*100)}%)</div>
         <div class="legend-item"><span class="legend-dot awake"></span>清醒 ${awake}m</div>
       </div>
+      ${hrvLine}
     </div>
   `;
 }
