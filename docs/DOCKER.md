@@ -95,4 +95,4 @@ docker run --rm --platform linux/arm64 mi-fitness-mcp-cn:arm64 --help
 2. `smoke-arm64`：拉取 arm64 镜像，断言 `uname -m` 为 `aarch64`，验证 CLI 与依赖导入，
    再以默认 `all` 模式启动容器，检查 8321 的 API 根路径与 8322 的仪表盘代理健康。
 
-镜像包默认为**私有**，要匿名拉取需在 GitHub 仓库 → Packages → 该镜像 → Package settings 中改为 Public。
+镜像包为公开（匿名 `docker pull` 可用）；若改为私有，需先 `docker login ghcr.io`（PAT 至少含 `read:packages`）。
