@@ -318,7 +318,13 @@ async function loadOverview() {
   showToast('正在加载仪表盘概览…', '', 'info', 1500);
   const summaryPromise = api('GET', getRangeQuery('/api/summary'));
   const hrPromise = api('GET', getRangeQuery('/api/heart-rate') + '&sample_type=resting&limit=1');
-  const sleepPromise = api('GET', getRangeQuery('/api/sleep') + '&include_naps=true');
+  // “最近睡眠”不跟随全局日期（默认昨天~今天），否则跨天/延迟上传时永远为空
+  const sleepEnd = new Date();
+  const sleepStart = new Date(Date.now() - 29 * 86400000);
+  const sleepPromise = api(
+    'GET',
+    `/api/sleep?start_date=${formatDate(sleepStart)}&end_date=${formatDate(sleepEnd)}&include_naps=true`
+  );
   const spo2Promise = api('GET', getRangeQuery('/api/spo2') + '&limit=1');
   const stressPromise = api('GET', getRangeQuery('/api/stress') + '&limit=1');
 
@@ -348,6 +354,12 @@ async function loadOverview() {
       || (new Date(lastSleep.end_at) - new Date(lastSleep.start_at)) / 60000;
     const hours = (totalMinutes / 60).toFixed(1);
     $('statSleep').textContent = isNaN(hours) ? '--' : hours;
+    const hrvEl = $('statSleepHrv');
+    if (hrvEl) {
+      hrvEl.textContent = lastSleep.avg_hrv_ms != null
+        ? `HRV ${lastSleep.avg_hrv_ms} ms`
+        : 'HRV --';
+    }
   }
 
   if (spo2.length > 0) {

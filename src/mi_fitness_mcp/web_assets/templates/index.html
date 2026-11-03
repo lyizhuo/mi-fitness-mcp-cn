@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Mi Fitness MCP | 健康数据中心与调试控制台</title>
-  <link rel="stylesheet" href="/static/css/style.css">
+  <link rel="stylesheet" href="/static/css/style.css?v={{ asset_version }}">
 </head>
 <body>
   <div id="app-container">
@@ -199,7 +199,7 @@
               </div>
               <div class="stat-card-value"><span id="statSleep">--</span> <span class="stat-card-unit">小时</span></div>
               <div class="stat-card-footer">
-                <span>包含小睡计算</span>
+                <span id="statSleepHrv" title="整晚平均 HRV（部分设备支持）">HRV --</span>
                 <span class="stat-card-badge neutral">良好</span>
               </div>
             </div>
@@ -629,7 +629,7 @@
   <div class="toast-container" id="toastContainer"></div>
 
   <!-- Scripts -->
-  <script src="/static/js/app.js"></script>
+  <script src="/static/js/app.js?v={{ asset_version }}"></script>
   <script>
     function toggleApiKeyVisibility() {
       const input = $('apiKeyInput');
