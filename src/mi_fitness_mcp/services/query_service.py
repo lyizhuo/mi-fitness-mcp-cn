@@ -173,6 +173,16 @@ class QueryService:
                 "time_awake_minutes": record["time_awake_minutes"],
                 "sleep_score": record.get("sleep_score"),
                 "is_nap": record.get("is_nap", False),
+                "avg_hrv_ms": record.get("avg_hrv_ms"),
+                "min_hrv_ms": record.get("min_hrv_ms"),
+                "max_hrv_ms": record.get("max_hrv_ms"),
+                "hrv_median_ms": record.get("hrv_median_ms"),
+                "hrv_std_ms": record.get("hrv_std_ms"),
+                "hrv_lower_quantile_ms": record.get("hrv_lower_quantile_ms"),
+                "hrv_upper_quantile_ms": record.get("hrv_upper_quantile_ms"),
+                "hrv_base_min_ms": record.get("hrv_base_min_ms"),
+                "hrv_base_max_ms": record.get("hrv_base_max_ms"),
+                "hrv_analysis_at": record.get("hrv_analysis_at"),
             }
 
             # 如有睡眠阶段信息则解析

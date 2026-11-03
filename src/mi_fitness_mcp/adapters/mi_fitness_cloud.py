@@ -438,6 +438,21 @@ class MiFitnessCloudAdapter(DataAdapter):
         parsed = int(float(value))
         return None if parsed == 0 else parsed
 
+    def _optional_nonnegative_int(self, value: Any) -> int | None:
+        """Parse an optional integer while preserving a real 0 (e.g. HRV std)."""
+        if value is None:
+            return None
+        try:
+            return max(0, int(float(value)))
+        except (TypeError, ValueError, OverflowError):
+            return None
+
+    def _optional_hrv_int(self, payload: dict[str, Any], *keys: str) -> int | None:
+        for key in keys:
+            if key in payload:
+                return self._optional_nonnegative_int(payload[key])
+        return None
+
     async def iter_daily_activity(
         self,
         start_date: str | None = None,
@@ -555,6 +570,14 @@ class MiFitnessCloudAdapter(DataAdapter):
                     continue
 
             sleep_id = f"{item.get('sid', self.user_id)}_{item.get('time', int(sleep_end))}"
+            hrv_analysis_ts = payload.get("hrv_analysis_timestamp") or payload.get(
+                "hrvAnalysisTimestamp"
+            )
+            hrv_analysis_at = (
+                self._timestamp_to_datetime(hrv_analysis_ts, zone_offset)
+                if hrv_analysis_ts
+                else None
+            )
             yield SleepSession(
                 id=f"mi_fitness_sleep_{sleep_id}",
                 provider="mi_fitness",
@@ -572,6 +595,20 @@ class MiFitnessCloudAdapter(DataAdapter):
                 sleep_score=self._optional_int(payload.get("score") or payload.get("sleep_score")),
                 is_nap=bool(payload.get("is_nap", False)),
                 stages=stages,
+                avg_hrv_ms=self._optional_hrv_int(payload, "avg_hrv", "avgHrv"),
+                min_hrv_ms=self._optional_hrv_int(payload, "min_hrv", "minHrv"),
+                max_hrv_ms=self._optional_hrv_int(payload, "max_hrv", "maxHrv"),
+                hrv_median_ms=self._optional_hrv_int(payload, "hrv_median", "hrvMedian"),
+                hrv_std_ms=self._optional_hrv_int(payload, "hrv_std", "hrvStd"),
+                hrv_lower_quantile_ms=self._optional_hrv_int(
+                    payload, "hrv_lower_quantile", "hrvLowerQuantile"
+                ),
+                hrv_upper_quantile_ms=self._optional_hrv_int(
+                    payload, "hrv_upper_quantile", "hrvUpperQuantile"
+                ),
+                hrv_base_min_ms=self._optional_hrv_int(payload, "hrv_base_min", "hrvBaseMin"),
+                hrv_base_max_ms=self._optional_hrv_int(payload, "hrv_base_max", "hrvBaseMax"),
+                hrv_analysis_at=hrv_analysis_at,
             )
 
     async def iter_workouts(

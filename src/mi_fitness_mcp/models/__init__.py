@@ -52,6 +52,17 @@ class SleepSession(BaseEntity):
     sleep_score: int | None = Field(None, ge=0, le=100, description="Sleep quality score")
     is_nap: bool = Field(default=False, description="Whether this is a nap")
     stages: list[SleepStage] = Field(default_factory=list, description="Sleep stages breakdown")
+    # 整晚 HRV 指标：Xiaomi sleep payload 自带，仅部分设备（如 Band 10 Pro）提供
+    avg_hrv_ms: int | None = Field(None, ge=0, description="Average overnight HRV (ms)")
+    min_hrv_ms: int | None = Field(None, ge=0, description="Minimum overnight HRV (ms)")
+    max_hrv_ms: int | None = Field(None, ge=0, description="Maximum overnight HRV (ms)")
+    hrv_median_ms: int | None = Field(None, ge=0, description="Median overnight HRV (ms)")
+    hrv_std_ms: int | None = Field(None, ge=0, description="Overnight HRV standard deviation (ms)")
+    hrv_lower_quantile_ms: int | None = Field(None, ge=0, description="Lower HRV quantile (ms)")
+    hrv_upper_quantile_ms: int | None = Field(None, ge=0, description="Upper HRV quantile (ms)")
+    hrv_base_min_ms: int | None = Field(None, ge=0, description="Xiaomi HRV baseline minimum (ms)")
+    hrv_base_max_ms: int | None = Field(None, ge=0, description="Xiaomi HRV baseline maximum (ms)")
+    hrv_analysis_at: datetime | None = Field(None, description="Xiaomi HRV analysis timestamp")
 
 
 class Workout(BaseEntity):
